@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import os
 import re
 import pandas as pd
@@ -5,20 +7,18 @@ import pandas as pd
 
 class WhatsAppFile:
     def __init__(self, file_name):
-        self.file_name = file_name
+        self.file_name = file_name.split('.')[0]
 
     def get_text_files_lines(self):
-        text_file_lines = open(self.file_name, encoding='utf-8').readlines()
+        text_file_lines = open('{}.txt'.format(self.file_name), encoding='utf-8').readlines()
         return text_file_lines
 
-    @property
     def extract_data_from_lines(self):
-        df = pd.DataFrame(columns=['date', 'time', 'sender', 'message', 'media'])
+        df = pd.DataFrame(columns=['date', 'time', 'sender', 'message', 'media', 'mentioned', 'no_words', 'emotion_count'])
 
         sender = None
         for line in self.get_text_files_lines():
             needed_line = True
-            media = False
 
             # Try to detect the message where the sender has a name
             main_line = re.findall(r'\d{2}\/\d{2}\/\d{4}, \d{1,2}\:\d{2} \w{2} - [\w ]+:', line)
@@ -44,26 +44,43 @@ class WhatsAppFile:
                 sender = re.findall(r'- [\w+ ]+', line)[0]
                 sender = sender[2:]
                 message = line.replace('{}, {} - {}: '.format(date, time, sender), '')
-                message = message.replace('\n', '')
-                # print(message)
-                # message = message[1:-1]
-                # print(date, time, sender, message)
+
             elif sender != None and needed_line == True:
                 message = line
-                message = message.replace('\n', '')
 
             else:
                 continue
 
-            dict = {'date': date, 'time': time, 'sender': sender, 'message': message, 'media': media}
+            # Final processing on message data
+            # Check media
+            message = message.replace('\n', '')
+            if message == '<Media omitted>':
+                message = ''
+                media = True
+            else:
+                media = None
+            # Check mentioned people
+            mentioned = re.findall('\@[\d+]', message)
+            for mention in mentioned:
+                message = message.replace('{}'.format(mention), '')
+
+            # Count number of words in the message
+            no_words = len(re.findall(r'\w+', message))
+
+            # Emotions count
+            emotion_count = message.count('💃')
+            message = message.replace('💃', '')
+
+            dict = {'date': date, 'time': time, 'sender': sender, 'message': "'{}'".format(message), 'media': media, 'mentioned': mentioned, 'no_words': no_words, 'emotion_count': emotion_count}
             df = df.append(dict, ignore_index=True)
 
-        # print(df)
+
+
         return df
 
     def print_data_csv(self):
         df = self.extract_data_from_lines()
-        df.to_csv('{}.csv'.format(self.file_name), sep=',', encoding='utf-8')
+        df.to_csv('{}.csv'.format(self.file_name), sep=',', encoding='utf-8-sig')
 
     def get_creation_data(self):
         for line in self.get_text_files_lines():
