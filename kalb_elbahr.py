@@ -17,8 +17,6 @@ class WhatsAppFile:
         return text_file_lines
 
     def extract_data_from_lines(self):
-        # df = pd.DataFrame(columns=['date', 'time', 'sender', 'message', 'media', 'mentioned', 'no_words',
-        #                            'emotion_count', 'url_messages', 'file_attached_message'])
 
         sender = None
         for line in self.get_text_files_lines():
@@ -125,9 +123,6 @@ def get_text_files():
 
 if __name__ == "__main__":
     text_files = get_text_files()
-
     whats_app_file = WhatsAppFile(text_files[0])
 
-    whats_app_file.extract_data_from_lines()
-    whats_app_file.get_creation_data()
     whats_app_file.print_data_csv()
