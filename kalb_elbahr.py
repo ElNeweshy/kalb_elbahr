@@ -14,7 +14,8 @@ class WhatsAppFile:
         return text_file_lines
 
     def extract_data_from_lines(self):
-        df = pd.DataFrame(columns=['date', 'time', 'sender', 'message', 'media', 'mentioned', 'no_words', 'emotion_count'])
+        df = pd.DataFrame(columns=['date', 'time', 'sender', 'message', 'media', 'mentioned', 'no_words',
+                                   'emotion_count', 'url_messages', 'file_attached_message'])
 
         sender = None
         for line in self.get_text_files_lines():
@@ -38,6 +39,7 @@ class WhatsAppFile:
             if "changed this group's icon" in line:
                 needed_line = False
 
+            # Capture message lines
             if len(main_line) == 1:
                 date = re.findall(r'\d{2}\/\d{2}\/\d{4}', line)[0]
                 time = re.findall(r'\d{1,2}\:\d{2} \w{2}', line)[0]
@@ -60,21 +62,38 @@ class WhatsAppFile:
             else:
                 media = None
             # Check mentioned people
-            mentioned = re.findall('\@[\d+]', message)
+            mentioned = re.findall('\@[\d+]+', message)
             for mention in mentioned:
                 message = message.replace('{}'.format(mention), '')
+
+            # Emotions count
+            #TODO: Not working on all cases
+            emotion_count = message.count('💃')
+            message = message.replace('💃', '')
+
+            # Attached files
+            file_attached_message = None
+            if '(file attached)' in message:
+                file_attached_message, message = message, ''
+
+            # URL capture
+            url_messages = None
+            # url_regex = r"(([\w]+:)?//)?(([\d\w]|%[a-fA-f\d]{2,2})+(:([\d\w]|%[a-fA-f\d]{2,2})+)?@)?([\d\w][-\d\w]{0,253}[\d\w]\.)+[\w]{2,63}(:[\d]+)?(/([-+_~.\d\w]|%[a-fA-f\d]{2,2})*)*(\?(&?([-+_~.\d\w]|%[a-fA-f\d]{2,2})=?)*)?(#([-+_~.\d\w]|%[a-fA-f\d]{2,2})*)?"
+            url_regex = r"https?[\S]+"
+            urls = re.findall(url_regex, message)
+            # if len(urls) != 0:
+            #     url_messages, message = message, ''
+            for url in urls:
+                print(url)
+                message = message.replace(url, '')
+            url_messages = urls
+
 
             # Count number of words in the message
             no_words = len(re.findall(r'\w+', message))
 
-            # Emotions count
-            emotion_count = message.count('💃')
-            message = message.replace('💃', '')
-
-            dict = {'date': date, 'time': time, 'sender': sender, 'message': "'{}'".format(message), 'media': media, 'mentioned': mentioned, 'no_words': no_words, 'emotion_count': emotion_count}
+            dict = {'date': date, 'time': time, 'sender': sender, 'message': "'{}'".format(message), 'media': media, 'mentioned': mentioned, 'no_words': no_words, 'emotion_count': emotion_count, 'url_messages': url_messages, 'file_attached_message': file_attached_message}
             df = df.append(dict, ignore_index=True)
-
-
 
         return df
 
