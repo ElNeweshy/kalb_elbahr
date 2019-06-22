@@ -8,14 +8,17 @@ import pandas as pd
 class WhatsAppFile:
     def __init__(self, file_name):
         self.file_name = file_name.split('.')[0]
+        self.df = pd.DataFrame(columns=['date', 'time', 'sender', 'message', 'media', 'mentioned', 'no_words',
+                                   'emotion_count', 'url_messages', 'file_attached_message'])
+        self.extract_data_from_lines()
 
     def get_text_files_lines(self):
         text_file_lines = open('{}.txt'.format(self.file_name), encoding='utf-8').readlines()
         return text_file_lines
 
     def extract_data_from_lines(self):
-        df = pd.DataFrame(columns=['date', 'time', 'sender', 'message', 'media', 'mentioned', 'no_words',
-                                   'emotion_count', 'url_messages', 'file_attached_message'])
+        # df = pd.DataFrame(columns=['date', 'time', 'sender', 'message', 'media', 'mentioned', 'no_words',
+        #                            'emotion_count', 'url_messages', 'file_attached_message'])
 
         sender = None
         for line in self.get_text_files_lines():
@@ -84,7 +87,6 @@ class WhatsAppFile:
             # if len(urls) != 0:
             #     url_messages, message = message, ''
             for url in urls:
-                print(url)
                 message = message.replace(url, '')
             url_messages = urls
 
@@ -93,9 +95,9 @@ class WhatsAppFile:
             no_words = len(re.findall(r'\w+', message))
 
             dict = {'date': date, 'time': time, 'sender': sender, 'message': "'{}'".format(message), 'media': media, 'mentioned': mentioned, 'no_words': no_words, 'emotion_count': emotion_count, 'url_messages': url_messages, 'file_attached_message': file_attached_message}
-            df = df.append(dict, ignore_index=True)
+            self.df = self.df.append(dict, ignore_index=True)
 
-        return df
+        return self.df
 
     def print_data_csv(self):
         df = self.extract_data_from_lines()
